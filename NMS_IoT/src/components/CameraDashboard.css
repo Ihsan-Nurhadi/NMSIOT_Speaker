@@ -1,0 +1,158 @@
+.camera-dashboard {
+  padding: 2rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+.subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  color: var(--secondary-text-color);
+}
+.icon-container.audio {
+  background-color: var(--accent-color-blue);
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+.camera-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
+
+.camera-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.camera-left input {
+  padding: 10px;
+  font-size: 14px;
+}
+
+.camera-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.camera-stream {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 12px;
+  border: 2px solid #ccc;
+}
+
+.ptz-controls {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.ptz-controls button {
+  padding: 10px 18px;
+  font-size: 18px;
+  margin: 5px;
+}
+
+.btn {
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 8px;
+  border: none;
+}
+
+.btn.connect {
+  background: #4f46e5;
+  color: white;
+}
+
+.btn.capture {
+  background: #10b981;
+  color: white;
+  margin-top: 1rem;
+}
+
+.status {
+  font-size: 14px;
+  color: #555;
+}
+
+.screenshot {
+  margin-top: 1rem;
+  max-width: 300px;
+  border: 2px solid #333;
+}
+
+.camera-placeholder {
+  width: 600px;
+  height: 400px;
+  border: 2px dashed #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+}
+.capture-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn.view {
+  background: #4f46e5;
+  color: white;
+}
+
+.btn.view:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  max-width: 80%;
+  max-height: 80%;
+  position: relative;
+}
+
+.modal-content img {
+  max-width: 100%;
+  max-height: 70vh;
+  border-radius: 8px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+

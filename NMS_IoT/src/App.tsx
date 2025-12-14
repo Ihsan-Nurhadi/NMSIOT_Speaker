@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import DeviceStatusCard from './components/DeviceStatusCard';
 import AudioControlCard from './components/AudioControlCard';
 import RotaryControlCard from './components/RotaryControlCard';
+import CameraDashboard from './components/CameraDashboard';
 import { FaCog, FaServer } from 'react-icons/fa';
 
 const App: React.FC = () => {
@@ -45,6 +46,9 @@ const App: React.FC = () => {
         <div className="grid-container">
           <AudioControlCard />
           <RotaryControlCard />
+        </div>
+        <div className="grid-container-big">
+          <CameraDashboard />
         </div>
       </main>
       <Footer />

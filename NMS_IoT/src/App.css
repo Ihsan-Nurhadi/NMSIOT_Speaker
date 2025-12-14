@@ -42,3 +42,9 @@
   gap: 3rem;
   margin-bottom: 4rem;
 }
+.grid-container-big {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(700px, 1fr));
+  gap: 3rem;
+  margin-bottom: 4rem;
+}
