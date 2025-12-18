@@ -11,6 +11,12 @@ const CameraDashboard: React.FC = () => {
   const [connected, setConnected] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
+  // Di dalam CameraDashboard.tsx
+  // const [siteStatus, setSiteStatus] = useState("Unknown");
+
+// Jika ingin mengambil status teks secara terpisah, 
+// Anda perlu membuat endpoint API tambahan di Django yang mengembalikan JSON status.
+// Tapi cara termudah adalah menampilkannya langsung di dalam frame video (seperti kode di atas).
 
 
 

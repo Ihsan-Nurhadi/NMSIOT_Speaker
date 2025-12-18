@@ -8,7 +8,10 @@ from django.http import HttpResponse
 from .tapo_ptz import move_ptz
 from datetime import datetime
 import time
+from ultralytics import YOLO
 
+MODEL_PATH = os.path.join(settings.BASE_DIR, "weights", "best.pt") 
+model = YOLO(MODEL_PATH)
 # ---- PTZ API ----
 @csrf_exempt
 def ptz_control(request):
@@ -61,21 +64,13 @@ def connect_camera(request):
 
 def video_stream(request):
     cam = request.session.get("camera")
-
-    # 1️⃣ Cek apakah kamera sudah connect
     if not cam:
         return HttpResponse("Camera not connected", status=400)
 
-    rtsp_url = (
-        f"rtsp://{cam['username']}:{cam['password']}"
-        f"@{cam['ip']}:554/stream1"
-    )
-
+    rtsp_url = f"rtsp://{cam['username']}:{cam['password']}@{cam['ip']}:554/stream1"
     cap = cv2.VideoCapture(rtsp_url)
 
-    # 2️⃣ Cek RTSP berhasil dibuka
     if not cap.isOpened():
-        cap.release()
         return HttpResponse("Failed to open RTSP stream", status=500)
 
     def generate():
@@ -85,6 +80,21 @@ def video_stream(request):
                 if not ret:
                     break
 
+                # --- INTEGRASI YOLO ---
+                # Lakukan prediksi pada frame yang sedang aktif
+                results = model.predict(frame, verbose=False)
+                probs = results[0].probs
+                class_id = probs.top1
+                class_name = model.names[class_id]
+                confidence = probs.top1conf.item()
+
+                # Gambar teks status di atas frame (Opsional)
+                color = (0, 255, 0) if "clean" in class_name.lower() else (0, 0, 255)
+                label = f"Status: {class_name} ({confidence:.2%})"
+                cv2.putText(frame, label, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                            1, color, 2, cv2.LINE_AA)
+
+                # --- ENCODE FRAME ---
                 _, jpeg = cv2.imencode(".jpg", frame)
                 frame_bytes = jpeg.tobytes()
 
@@ -93,10 +103,9 @@ def video_stream(request):
                     b"Content-Type: image/jpeg\r\n\r\n" +
                     frame_bytes + b"\r\n"
                 )
-
-                time.sleep(0.03)  # ⏱️ ~30 FPS (ANTI CPU 100%)
+                time.sleep(0.01) # Sesuaikan delay
         finally:
-            cap.release()  # 3️⃣ WAJIB dilepas
+            cap.release()
 
     return StreamingHttpResponse(
         generate(),
@@ -105,28 +114,21 @@ def video_stream(request):
 
 def camera_screenshot(request):
     cam = request.session.get("camera")
-    if not cam:
-        return JsonResponse({"error": "Camera not connected"}, status=400)
+    if not cam: return JsonResponse({"error": "No cam"}, status=400)
 
     rtsp_url = f"rtsp://{cam['username']}:{cam['password']}@{cam['ip']}:554/stream1"
-
     cap = cv2.VideoCapture(rtsp_url)
     success, frame = cap.read()
     cap.release()
 
-    if not success:
-        return JsonResponse({"error": "Gagal ambil gambar"}, status=500)
-
-    save_dir = os.path.join(settings.MEDIA_ROOT, "screenshots")
-    os.makedirs(save_dir, exist_ok=True)
-
-    filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
-    filepath = os.path.join(save_dir, filename)
-
-    cv2.imwrite(filepath, frame)
-
-    return JsonResponse({
-        "status": "success",
-        "file": settings.MEDIA_URL + "screenshots/" + filename
-    })
-
+    if success:
+        results = model.predict(frame, verbose=False)
+        class_name = model.names[results[0].probs.top1]
+        
+        # Simpan file dengan nama yang mengandung status
+        filename = f"{class_name}_{datetime.now().strftime('%H%M%S')}.jpg"
+        save_path = os.path.join(settings.MEDIA_ROOT, "screenshots", filename)
+        cv2.imwrite(save_path, frame)
+        
+        return JsonResponse({"status": "success", "file": settings.MEDIA_URL + "screenshots/" + filename, "label": class_name})
+    return JsonResponse({"error": "fail"}, status=500)
