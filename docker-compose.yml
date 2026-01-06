@@ -29,7 +29,7 @@ services:
       - "80:80"
     volumes:
       # Nginx mengambil file statis yang dikumpulkan oleh Django
-      - ./NMS_Backend/static:/app/static
+      - ./NMS_Backend/staticfiles:/app/static
       - ./NMS_Backend/media:/app/media
     depends_on:
       - backend
