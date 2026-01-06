@@ -3,10 +3,12 @@ services:
     build: ./NMS_Backend
     container_name: django_backend
     volumes:
+      - ./NMS_Backend:/app
       - ./NMS_Backend/data:/app/data
       - ./NMS_Backend/static:/app/static
       - ./NMS_Backend/media:/app/media
       - ./NMS_Backend/weights:/app/weights
+      - ./NMS_Backend/staticfiles:/app/staticfiles
     environment:
       - DEBUG=False
       # Pastikan di settings.py database point ke /app/data/db.sqlite3
