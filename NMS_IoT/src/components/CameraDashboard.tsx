@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react"; // 1. Tambahkan useRef di sini
 import "./CameraDashboard.css";
-import { FaCameraRetro } from "react-icons/fa";
+import { FaCameraRetro, FaExpand } from "react-icons/fa"; // Tambahkan icon expand jika perlu
 import Card from "./Card";
 
 const CameraDashboard: React.FC = () => {
@@ -11,31 +11,35 @@ const CameraDashboard: React.FC = () => {
   const [connected, setConnected] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
-  // Di dalam CameraDashboard.tsx
-  // const [siteStatus, setSiteStatus] = useState("Unknown");
+  const [lastLabel, setLastLabel] = useState<string | null>(null);
 
-// Jika ingin mengambil status teks secara terpisah, 
-// Anda perlu membuat endpoint API tambahan di Django yang mengembalikan JSON status.
-// Tapi cara termudah adalah menampilkannya langsung di dalam frame video (seperti kode di atas).
-
-
+  // 2. Buat Ref untuk menargetkan kontainer video
+  const videoRef = useRef<HTMLDivElement>(null);
 
   const connectCamera = async () => {
-  const res = await fetch("http://localhost:8000/camera/connect/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ ip, username, password }),
+    const res = await fetch("http://localhost:8000/camera/connect/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ ip, username, password }),
     });
 
     const data = await res.json();
     setStatus(data.message);
 
     if (res.ok) {
-        setConnected(true);
+      setConnected(true);
     }
-    };
+  };
 
+  // 3. Fungsi untuk mengaktifkan Fullscreen
+  const handleFullscreen = () => {
+    if (videoRef.current) {
+      if (videoRef.current.requestFullscreen) {
+        videoRef.current.requestFullscreen();
+      }
+    }
+  };
 
   const sendPTZ = (direction: string) => {
     fetch("http://localhost:8000/ptz/", {
@@ -46,7 +50,8 @@ const CameraDashboard: React.FC = () => {
     });
   };
 
-    const takeScreenshot = async () => {
+  const takeScreenshot = async () => {
+    setStatus("Processing classification...");
     const res = await fetch("http://localhost:8000/camera/screenshot/", {
       credentials: "include",
     });
@@ -54,7 +59,16 @@ const CameraDashboard: React.FC = () => {
     const data = await res.json();
 
     if (data.status === "success") {
-      setLastCapture("http://localhost:8000" + data.file);
+      // PERBAIKAN: Gunakan data.file_url sesuai backend, bukan data.file
+      // Pastikan backend mengembalikan path relatif seperti '/media/screenshots/...'
+      setLastCapture("http://localhost:8000" + data.file_url); 
+      
+      // Sesuaikan label juga jika perlu (di backend saya pakai 'detected_object')
+      setLastLabel(data.site_status + " - " + data.detected_object); 
+      
+      setStatus(`Capture success: ${data.site_status}`);
+    } else {
+      setStatus("Failed to capture image");
     }
   };
 
@@ -62,55 +76,44 @@ const CameraDashboard: React.FC = () => {
     <Card className="camera-dashboard">
       <div className="card-header">
         <div className="icon-container audio">
-        <FaCameraRetro  />
+          <FaCameraRetro />
         </div>
         <div className="title">
-        <h2>Camera Dashboard</h2>
-        <p className="subtitle">Manage and monitor your IP camera</p>
+          <h2>Camera Dashboard</h2>
+          <p className="subtitle">Manage and monitor your IP camera</p>
         </div>
       </div>
       <div className="camera-layout">
-        {/* LEFT PANEL */}
         <div className="camera-left">
           <h3>Camera Connection</h3>
-
-          <input
-            placeholder="IP Camera"
-            value={ip}
-            onChange={(e) => setIp(e.target.value)}
-          />
-          <input
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <button className="btn connect" onClick={connectCamera}>
-            Connect
-          </button>
-
+          <input placeholder="IP Camera" value={ip} onChange={(e) => setIp(e.target.value)} />
+          <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button className="btn connect" onClick={connectCamera}>Connect</button>
           <p className="status">{status}</p>
         </div>
 
-        {/* RIGHT PANEL */}
         <div className="camera-right">
           {connected ? (
-            <img
+            /* 4. Bungkus IMG dengan DIV yang memiliki Ref */
+            <div className="video-wrapper" ref={videoRef} style={{ position: 'relative' }}>
+              <img
                 src="http://localhost:8000/stream/"
                 className="camera-stream"
                 alt="Camera Stream"
-            />
-            ) : (
-            <div className="camera-placeholder">
-                Kamera belum terhubung
+              />
+              {/* Tombol melayang untuk fullscreen */}
+              <button 
+                className="fullscreen-icon-btn" 
+                onClick={handleFullscreen}
+                title="Fullscreen"
+              >
+                <FaExpand />
+              </button>
             </div>
-            )}
+          ) : (
+            <div className="camera-placeholder">Kamera belum terhubung</div>
+          )}
 
           <div className="ptz-controls">
             <button onClick={() => sendPTZ("up")}>⬆</button>
@@ -118,17 +121,19 @@ const CameraDashboard: React.FC = () => {
             <button onClick={() => sendPTZ("right")}>➡</button>
             <button onClick={() => sendPTZ("down")}>⬇</button>
             <button className="btn capture" onClick={takeScreenshot}>Capture</button>
-            <button className="btn view"disabled={!lastCapture}onClick={() => setShowModal(true)}>Lihat Capture</button>
+            <button className="btn view" disabled={!lastCapture} onClick={() => setShowModal(true)}>
+              Lihat Capture
+            </button>
           </div>
         </div>
       </div>
+
       {showModal && lastCapture && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowModal(false)}>
-              ✕
-            </button>
+            <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             <img src={lastCapture} alt="Screenshot" />
+            <div className="capture-label">Hasil: {lastLabel}</div>
           </div>
         </div>
       )}

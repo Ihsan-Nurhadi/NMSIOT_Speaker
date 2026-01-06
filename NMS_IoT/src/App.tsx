@@ -6,6 +6,8 @@ import DeviceStatusCard from './components/DeviceStatusCard';
 import AudioControlCard from './components/AudioControlCard';
 import RotaryControlCard from './components/RotaryControlCard';
 import CameraDashboard from './components/CameraDashboard';
+import AIEndpoint from './components/SiteCleanliness';
+// import TrackerMap from './components/GPSTracker';
 import { FaCog, FaServer } from 'react-icons/fa';
 
 const App: React.FC = () => {
@@ -49,6 +51,9 @@ const App: React.FC = () => {
         </div>
         <div className="grid-container-big">
           <CameraDashboard />
+        </div>
+        <div className="grid-container-big">
+          <AIEndpoint />
         </div>
       </main>
       <Footer />

@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'speakerapp',
     'corsheaders',
     'cameraapp',
+    'rest_framework',
+    # 'gps_tracer',
 ]
 
 MIDDLEWARE = [
@@ -55,6 +57,10 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 CORS_ALLOW_ALL_ORIGINS = True
+
+# TRACCAR_BASE_URL = "http://demo.traccar.org:8082"
+# TRACCAR_USER = "testinggps"
+# TRACCAR_PASS = "Nayaka2025"
 
 ROOT_URLCONF = 'django_mqtt.urls'
 
