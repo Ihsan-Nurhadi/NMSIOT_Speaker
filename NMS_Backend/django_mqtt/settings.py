@@ -26,7 +26,11 @@ SECRET_KEY = 'django-insecure-uv@(()w_3ngn$lu_2jspyy7mbp)+x4dk!760o5a^a7wt4z8&@(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "103.176.45.14",  # Masukkan IP VPS Anda di sini (tanpa http://)
+]
 
 
 # Application definition
