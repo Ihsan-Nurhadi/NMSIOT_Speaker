@@ -19,7 +19,7 @@ export default function SiteMonitor() {
   const checkSite = async () => {
     setLoading(true);
     try {
-      const res = await axios.post("/classify/", {
+      const res = await axios.post("/api/classify/", {
         image_url: baseImageUrl,
       });
       setResult(res.data);
