@@ -69,7 +69,7 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = False  # DEV
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+    "http://localhost:3000","http://103.176.45.14",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
