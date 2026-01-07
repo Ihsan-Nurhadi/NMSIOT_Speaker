@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', include('speakerapp.urls')),
-    path('', include('cameraapp.urls')),
+    path('api/', include('cameraapp.urls')),
     # path('', include('gps_tracer.urls')),
 ]
 if settings.DEBUG:
