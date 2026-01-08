@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import Card from "./Card";
 
 type Result = {
   status: "bersih" | "kotor";
@@ -30,6 +31,7 @@ export default function SiteMonitor() {
   };
 
   return (
+    <Card className="site-monitor-card">
     <div style={{ padding: 20, maxWidth: 700 }}>
       <h2>Monitoring Kebersihan Site</h2>
 
@@ -76,5 +78,6 @@ export default function SiteMonitor() {
         </div>
       )}
     </div>
+    </Card>
   );
 }

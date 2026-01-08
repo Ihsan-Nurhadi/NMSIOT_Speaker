@@ -17,7 +17,7 @@ const CameraDashboard: React.FC = () => {
   const videoRef = useRef<HTMLDivElement>(null);
 
   const connectCamera = async () => {
-    const res = await fetch("http://localhost:8000/camera/connect/", {
+    const res = await fetch("http://localhost:8000/api/camera/connect/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -42,7 +42,7 @@ const CameraDashboard: React.FC = () => {
   };
 
   const sendPTZ = (direction: string) => {
-    fetch("http://localhost:8000/ptz/", {
+    fetch("http://localhost:8000/api/ptz/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -52,7 +52,7 @@ const CameraDashboard: React.FC = () => {
 
   const takeScreenshot = async () => {
     setStatus("Processing classification...");
-    const res = await fetch("http://localhost:8000/camera/screenshot/", {
+    const res = await fetch("http://localhost:8000/api/camera/screenshot/", {
       credentials: "include",
     });
 
@@ -98,7 +98,7 @@ const CameraDashboard: React.FC = () => {
             /* 4. Bungkus IMG dengan DIV yang memiliki Ref */
             <div className="video-wrapper" ref={videoRef} style={{ position: 'relative' }}>
               <img
-                src="http://localhost:8000/stream/"
+                src="http://localhost:8000/api/stream/"
                 className="camera-stream"
                 alt="Camera Stream"
               />

@@ -101,17 +101,19 @@ def video_stream(request):
     return StreamingHttpResponse(generate(), content_type="multipart/x-mixed-replace; boundary=frame")
 
 
+# views.py
+
 def camera_screenshot(request):
-    # Validasi Session Camera
+    # 1. Validation
     cam = request.session.get("camera")
     if not cam: 
         return JsonResponse({"error": "No cam session data"}, status=400)
 
-    if model is None:
+    # Ensure model is globally loaded
+    if 'model' not in globals() or model is None:
         return JsonResponse({"error": "Model AI not loaded properly"}, status=500)
 
-    # Capture RTSP
-    # Gunakan stream0 atau stream1 sesuai kebutuhan bandwidth
+    # 2. Capture RTSP
     rtsp_url = f"rtsp://{cam['username']}:{cam['password']}@{cam['ip']}:554/stream1"
     
     cap = cv2.VideoCapture(rtsp_url)
@@ -119,66 +121,77 @@ def camera_screenshot(request):
         return JsonResponse({"error": "Cannot open RTSP stream"}, status=500)
 
     success, frame = cap.read()
-    cap.release() # Segera release setelah capture
+    cap.release() 
 
-    if success:
-        frame_for_ai = frame.copy() 
+    if not success:
+        return JsonResponse({"error": "Failed to capture frame"}, status=500)
 
-        # =====================================================
-        # 3. ROI MASKING (Lakukan pada frame_for_ai saja)
-        # =====================================================
-        h, w, _ = frame.shape
-        x1, y1 = int(0.55 * w), int(0.25 * h)
-        x2, y2 = w, h
-        
-        # Hitamkan HANYA pada frame copy, frame asli tetap bersih
-        frame_for_ai[y1:y2, x1:x2] = 0 
+    # 3. ROI Masking & Prediction
+    frame_for_ai = frame.copy()
+    h, w, _ = frame.shape
+    x1, y1 = int(0.55 * w), int(0.25 * h)
+    x2, y2 = w, h
+    frame_for_ai[y1:y2, x1:x2] = 0 
 
-        # =====================================================
-        # 4. YOLOv8 CLASSIFICATION
-        # =====================================================
-        # Gunakan frame_for_ai untuk prediksi
-        results = model.predict(frame_for_ai, verbose=False) 
-        probs = results[0].probs
-        
-        class_id = probs.top1
-        raw_class_name = model.names[class_id].lower() # ambil nama class (lowercase)
-        confidence = probs.top1conf.item()
+    # Predict
+    results = model.predict(frame_for_ai, verbose=False) 
+    result = results[0] # Get the first result
 
-
-        if raw_class_name in DIRTY_CLASSES:
-            final_status = "KOTOR"
-            color = (0, 0, 255) # Merah
-        else:
-            final_status = "BERSIH"
-            color = (0, 255, 0) # Hijau
-
-        # Menulis label pada gambar
-        label_text = f"Site: {final_status} | Det: {raw_class_name} ({confidence:.1%})"
-        cv2.putText(frame, label_text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
-
-        # Setup penyimpanan file
-        filename = f"{final_status}_{raw_class_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-        save_dir = os.path.join(settings.MEDIA_ROOT, "screenshots")
-        
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-            
-        save_path = os.path.join(save_dir, filename)
-        
-        # Simpan gambar (yang sudah dimasking dan di-annotasi)
-        cv2.imwrite(save_path, frame)
-        
-        # Return JSON Response
-        return JsonResponse({
-            "status": "success", 
-            "file_url": settings.MEDIA_URL + "screenshots/" + filename, 
-            "site_status": final_status,    # BERSIH / KOTOR
-            "detected_object": raw_class_name,
-            "confidence": f"{confidence:.2%}"
-        })
+    # --- FIX STARTS HERE ---
     
-    return JsonResponse({"error": "Failed to capture frame"}, status=500)
+    # Case A: Model is Classification (Has probs)
+    if result.probs is not None:
+        class_id = result.probs.top1
+        raw_class_name = model.names[class_id].lower()
+        confidence = result.probs.top1conf.item()
+
+    # Case B: Model is Object Detection (Has boxes, but no probs)
+    elif result.boxes is not None:
+        # Fallback logic: If detection model, take the object with highest confidence
+        if len(result.boxes) > 0:
+            # Sort by confidence and take top 1
+            best_box = sorted(result.boxes, key=lambda x: x.conf[0], reverse=True)[0]
+            class_id = int(best_box.cls[0])
+            raw_class_name = model.names[class_id].lower()
+            confidence = float(best_box.conf[0])
+        else:
+            # No objects detected
+            raw_class_name = "unknown"
+            confidence = 0.0
+
+    else:
+        return JsonResponse({"error": "Model output format not recognized (No probs or boxes)"}, status=500)
+
+    # --- LOGIC CONTINUES ---
+
+    if raw_class_name in DIRTY_CLASSES:
+        final_status = "KOTOR"
+        color = (0, 0, 255) # Red
+    else:
+        final_status = "BERSIH"
+        color = (0, 255, 0) # Green
+
+    # Draw Label
+    label_text = f"Site: {final_status} | Det: {raw_class_name} ({confidence:.1%})"
+    cv2.putText(frame, label_text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+
+    # Save File
+    filename = f"{final_status}_{raw_class_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+    save_dir = os.path.join(settings.MEDIA_ROOT, "screenshots")
+    
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+        
+    save_path = os.path.join(save_dir, filename)
+    cv2.imwrite(save_path, frame)
+    
+    return JsonResponse({
+        "status": "success", 
+        "file_url": settings.MEDIA_URL + "screenshots/" + filename, 
+        "site_status": final_status,
+        "detected_object": raw_class_name,
+        "confidence": f"{confidence:.2%}"
+    })
 
 @api_view(["POST"])
 def classify_site(request):
