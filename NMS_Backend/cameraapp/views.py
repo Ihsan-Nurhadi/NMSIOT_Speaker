@@ -18,7 +18,7 @@ import numpy as np
 import traceback
 import requests
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, "weights", "cleanliness.pt") 
+MODEL_PATH = os.path.join(settings.BASE_DIR, "weights", "person-fire.pt") 
 try:
     model = YOLO(MODEL_PATH)
 except Exception as e:
@@ -76,6 +76,38 @@ def connect_camera(request):
 
     return JsonResponse({"message": "Camera connected"})
 
+def detect_person(frame, conf=0.3):
+    results = model(frame, conf=conf, verbose=False)[0]
+
+    person_count = 0
+
+    if results.boxes is not None:
+        for box in results.boxes:
+            cls = int(box.cls)
+            label = model.names[cls].lower()
+
+            if label != "person":
+                continue
+
+            person_count += 1
+
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            confidence = float(box.conf)
+
+            # DRAW BOX
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(
+                frame,
+                f"Person {confidence:.2f}",
+                (x1, y1 - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 255, 0),
+                2
+            )
+
+    return frame, person_count
+
 
 def video_stream(request):
     cam = request.session.get("camera")
@@ -91,14 +123,46 @@ def video_stream(request):
                 ret, frame = cap.read()
                 if not ret:
                     break
-                
-                # Langsung encode tanpa proses model.predict()
+
+                # OPTIONAL: resize biar ringan
+                frame = cv2.resize(frame, (640, 360))
+
+                # ===== PERSON DETECTION =====
+                frame, person_count = detect_person(frame)
+
+                # STATUS TEXT
+                status_text = (
+                    f"PERSON DETECTED ({person_count})"
+                    if person_count > 0
+                    else "NO PERSON"
+                )
+
+                cv2.putText(
+                    frame,
+                    status_text,
+                    (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.0,
+                    (255, 255, 255),
+                    3
+                )
+
+                # ENCODE JPEG
                 _, jpeg = cv2.imencode(".jpg", frame)
-                yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n"
+                    + jpeg.tobytes()
+                    + b"\r\n"
+                )
         finally:
             cap.release()
 
-    return StreamingHttpResponse(generate(), content_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingHttpResponse(
+        generate(),
+        content_type="multipart/x-mixed-replace; boundary=frame"
+    )
+
 
 
 # views.py
