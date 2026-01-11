@@ -163,9 +163,17 @@ def video_stream(request):
         content_type="multipart/x-mixed-replace; boundary=frame"
     )
 
+def video_stream2(request):
+    cam = request.session.get("camera")
+    if not cam:
+        return HttpResponse("Camera not connected", status=400)
 
+    rtsp_url = f"rtsp://{cam['username']}:{cam['password']}@{cam['ip']}:554/stream2"
+    cap = cv2.VideoCapture(rtsp_url)
 
-# views.py
+    return StreamingHttpResponse(
+        content_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 def camera_screenshot(request):
     # 1. Validation

@@ -31,7 +31,7 @@ const CameraDashboard: React.FC = () => {
       setConnected(true);
     }
   };
-
+  
   // 3. Fungsi untuk mengaktifkan Fullscreen
   const handleFullscreen = () => {
     if (videoRef.current) {
@@ -74,69 +74,138 @@ const CameraDashboard: React.FC = () => {
 
   return (
     <Card className="camera-dashboard">
-      <div className="card-header">
-        <div className="icon-container audio">
-          <FaCameraRetro />
+      <section className="camera1">
+        <div className="card-header">
+          <div className="icon-container audio" id="camera-icon">
+            <FaCameraRetro />
+          </div>
+          <div className="title">
+            <h2>Camera Dashboard 1</h2>
+            <p className="subtitle">Manage and monitor your IP camera</p>
+          </div>
         </div>
-        <div className="title">
-          <h2>Camera Dashboard</h2>
-          <p className="subtitle">Manage and monitor your IP camera</p>
-        </div>
-      </div>
-      <div className="camera-layout">
-        <div className="camera-left">
-          <h3>Camera Connection</h3>
-          <input placeholder="IP Camera" value={ip} onChange={(e) => setIp(e.target.value)} />
-          <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <button className="btn connect" onClick={connectCamera}>Connect</button>
-          <p className="status">{status}</p>
-        </div>
+        <div className="camera-layout">
+          <div className="camera-left">
+            <h3>Camera Connection</h3>
+            <input placeholder="IP Camera" value={ip} onChange={(e) => setIp(e.target.value)} />
+            <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button className="btn connect" onClick={connectCamera}>Connect</button>
+            <p className="status">{status}</p>
+          </div>
 
-        <div className="camera-right">
-          {connected ? (
-            /* 4. Bungkus IMG dengan DIV yang memiliki Ref */
-            <div className="video-wrapper" ref={videoRef} style={{ position: 'relative' }}>
-              <img
-                src="http://localhost:8000/api/stream/"
-                className="camera-stream"
-                alt="Camera Stream"
-              />
-              {/* Tombol melayang untuk fullscreen */}
-              <button 
-                className="fullscreen-icon-btn" 
-                onClick={handleFullscreen}
-                title="Fullscreen"
-              >
-                <FaExpand />
+          <div className="camera-right">
+            {connected ? (
+              /* 4. Bungkus IMG dengan DIV yang memiliki Ref */
+              <div className="video-wrapper" ref={videoRef} style={{ position: 'relative' }}>
+                <img
+                  src="http://localhost:8000/api/stream/"
+                  className="camera-stream"
+                  alt="Camera Stream"
+                />
+                {/* Tombol melayang untuk fullscreen */}
+                <button 
+                  className="fullscreen-icon-btn" 
+                  onClick={handleFullscreen}
+                  title="Fullscreen"
+                >
+                  <FaExpand />
+                </button>
+              </div>
+            ) : (
+              <div className="camera-placeholder">Kamera belum terhubung</div>
+            )}
+
+            <div className="ptz-controls">
+              <button onClick={() => sendPTZ("up")}>⬆</button>
+              <button onClick={() => sendPTZ("left")}>⬅</button>
+              <button onClick={() => sendPTZ("right")}>➡</button>
+              <button onClick={() => sendPTZ("down")}>⬇</button>
+              <button className="btn capture" onClick={takeScreenshot}>Capture</button>
+              <button className="btn view" disabled={!lastCapture} onClick={() => setShowModal(true)}>
+                Lihat Capture
               </button>
             </div>
-          ) : (
-            <div className="camera-placeholder">Kamera belum terhubung</div>
-          )}
-
-          <div className="ptz-controls">
-            <button onClick={() => sendPTZ("up")}>⬆</button>
-            <button onClick={() => sendPTZ("left")}>⬅</button>
-            <button onClick={() => sendPTZ("right")}>➡</button>
-            <button onClick={() => sendPTZ("down")}>⬇</button>
-            <button className="btn capture" onClick={takeScreenshot}>Capture</button>
-            <button className="btn view" disabled={!lastCapture} onClick={() => setShowModal(true)}>
-              Lihat Capture
-            </button>
           </div>
         </div>
-      </div>
 
-      {showModal && lastCapture && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            <img src={lastCapture} alt="Screenshot" />
-            <div className="capture-label">Hasil: {lastLabel}</div>
+        {showModal && lastCapture && (
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+              <img src={lastCapture} alt="Screenshot" />
+              <div className="capture-label">Hasil: {lastLabel}</div>
+            </div>
+          </div>
+        )}
+      </section>
+      {/* Yang harus dihapus nanti */}
+      <hr></hr>
+      <section className="camera2">
+          <div className="card-header">
+          <div className="icon-container audio">
+            <FaCameraRetro />
+          </div>
+          <div className="title">
+            <h2>Camera Dashboard 2</h2>
+            <p className="subtitle">Manage and monitor your IP camera</p>
           </div>
         </div>
-      )}
+        <div className="camera-layout">
+          <div className="camera-left">
+            <h3>Camera Connection</h3>
+            <input placeholder="IP Camera" value={ip} onChange={(e) => setIp(e.target.value)} />
+            <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button className="btn connect" onClick={connectCamera}>Connect</button>
+            <p className="status">{status}</p>
+          </div>
+
+          <div className="camera-right">
+            {connected ? (
+              /* 4. Bungkus IMG dengan DIV yang memiliki Ref */
+              <div className="video-wrapper" ref={videoRef} style={{ position: 'relative' }}>
+                <img
+                  src="http://localhost:8000/api/stream2/"
+                  className="camera-stream"
+                  alt="Camera Stream"
+                />
+                {/* Tombol melayang untuk fullscreen */}
+                <button 
+                  className="fullscreen-icon-btn" 
+                  onClick={handleFullscreen}
+                  title="Fullscreen"
+                >
+                  <FaExpand />
+                </button>
+              </div>
+            ) : (
+              <div className="camera-placeholder">Kamera belum terhubung</div>
+            )}
+
+            <div className="ptz-controls">
+              <button onClick={() => sendPTZ("up")}>⬆</button>
+              <button onClick={() => sendPTZ("left")}>⬅</button>
+              <button onClick={() => sendPTZ("right")}>➡</button>
+              <button onClick={() => sendPTZ("down")}>⬇</button>
+              <button className="btn capture" onClick={takeScreenshot}>Capture</button>
+              <button className="btn view" disabled={!lastCapture} onClick={() => setShowModal(true)}>
+                Lihat Capture
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {showModal && lastCapture && (
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+              <img src={lastCapture} alt="Screenshot" />
+              <div className="capture-label">Hasil: {lastLabel}</div>
+            </div>
+          </div>
+        )}
+      </section>
     </Card>
   );
 };

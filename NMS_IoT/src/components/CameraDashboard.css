@@ -25,6 +25,9 @@
   color: #fff;
   margin-bottom: 1rem;
 }
+#camera-icon {
+  background-color: var(--accent-color-green)!important;
+}
 .camera-layout {
   display: grid;
   grid-template-columns: 1fr 2fr;
