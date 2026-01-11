@@ -163,6 +163,8 @@ def video_stream(request):
         content_type="multipart/x-mixed-replace; boundary=frame"
     )
 
+# Tambahan untuk stream2 jika ini dihapus
+
 def video_stream2(request):
     cam = request.session.get("camera")
     if not cam:

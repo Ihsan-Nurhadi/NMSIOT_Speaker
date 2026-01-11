@@ -8,7 +8,7 @@ urlpatterns = [
     path("ptz/", views.ptz_control),
     path('camera/connect/', views.connect_camera, name='connect_camera'),
     path("stream/", views.video_stream),
-    path("stream2/", views.video_stream2),
+    path("stream2/", views.video_stream2), # Tambahan untuk stream2 jika dihapus
     path("camera/screenshot/", views.camera_screenshot, name="camera_screenshot"),
     path("classify/", classify_site),
 ]
