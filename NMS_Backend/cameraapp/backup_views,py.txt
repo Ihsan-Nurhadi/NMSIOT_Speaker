@@ -6,7 +6,7 @@ from django.conf import settings
 import cv2
 from django.http import HttpResponse
 from tests import MODEL
-from .tapo_ptz import move_ptz1, move_ptz2
+from .tapo_ptz import move_ptz
 from datetime import datetime
 import time
 from rest_framework.decorators import api_view
@@ -24,59 +24,39 @@ try:
 except Exception as e:
     print(f"Error loading model: {e}")
     model = None
-SESSION_CAM1 = "camera_ai"
-SESSION_CAM2 = "camera_raw"
-camera = None
+
 # Definisi logic bisnis
 DIRTY_CLASSES = {"dryleaves", "grass", "tree"}
 # ---- PTZ API ----
 @csrf_exempt
 def ptz_control(request):
-    cam1 = request.session.get(SESSION_CAM1)
-    if not cam1:
+    cam = request.session.get("camera")
+    if not cam:
         return JsonResponse({"error": "Camera not connected"}, status=400)
 
     data = json.loads(request.body)
     direction = data.get("direction")
 
     if direction == "left":
-        move_ptz1(cam1, -0.5, 0)
+        move_ptz(cam, -0.5, 0)
     elif direction == "right":
-        move_ptz1(cam1, 0.5, 0)
+        move_ptz(cam, 0.5, 0)
     elif direction == "up":
-        move_ptz1(cam1, 0, 0.5)
+        move_ptz(cam, 0, 0.5)
     elif direction == "down":
-        move_ptz1(cam1, 0, -0.5)
+        move_ptz(cam, 0, -0.5)
     else:
         return JsonResponse({"error": "Unknown direction"}, status=400)
 
     return JsonResponse({"status": "ok", "moved": direction})
 
-@csrf_exempt
-def ptz_control2(request):
-    cam2 = request.session.get(SESSION_CAM2)
-    if not cam2:
-        return JsonResponse({"error": "Camera not connected"}, status=400)
-
-    data = json.loads(request.body)
-    direction = data.get("direction")
-
-    if direction == "left":
-        move_ptz2(cam2, -0.5, 0)
-    elif direction == "right":
-        move_ptz2(cam2, 0.5, 0)
-    elif direction == "up":
-        move_ptz2(cam2, 0, 0.5)
-    elif direction == "down":
-        move_ptz2(cam2, 0, -0.5)
-    else:
-        return JsonResponse({"error": "Unknown direction"}, status=400)
-
-    return JsonResponse({"status": "ok", "moved": direction})
-
+camera = None
 
 @csrf_exempt
 def connect_camera(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+
     data = json.loads(request.body)
 
     rtsp_url = f"rtsp://{data['username']}:{data['password']}@{data['ip']}:554/stream1"
@@ -87,14 +67,22 @@ def connect_camera(request):
 
     cap.release()
 
-    request.session[SESSION_CAM1] = data
-    return JsonResponse({"message": "Camera AI connected"})
+    # ✅ SIMPAN KE SESSION
+    request.session["camera"] = {
+        "ip": data["ip"],
+        "username": data["username"],
+        "password": data["password"],
+    }
 
+    return JsonResponse({"message": "Camera connected"})
 @csrf_exempt
 def connect_camera2(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+
     data = json.loads(request.body)
 
-    rtsp_url = f"rtsp://{data['username2']}:{data['password2']}@{data['ip2']}:554/stream2"
+    rtsp_url = f"rtsp://{data['username2']}:{data['password2']}@{data['ip2']}:554/stream1"
     cap = cv2.VideoCapture(rtsp_url)
 
     if not cap.isOpened():
@@ -102,8 +90,15 @@ def connect_camera2(request):
 
     cap.release()
 
-    request.session[SESSION_CAM2] = data
-    return JsonResponse({"message": "Camera RAW connected"})
+    # ✅ SIMPAN KE SESSION
+    request.session["camera"] = {
+        "ip2": data["ip2"],
+        "username2": data["username2"],
+        "password2": data["password2"],
+    }
+
+    return JsonResponse({"message": "Camera connected"})
+
 def detect_person(frame, conf=0.3):
     results = model(frame, conf=conf, verbose=False)[0]
 
@@ -138,75 +133,72 @@ def detect_person(frame, conf=0.3):
 
 
 def video_stream(request):
-    cam = request.session.get(SESSION_CAM1)
+    cam = request.session.get("camera")
     if not cam:
-        return HttpResponse("Camera AI not connected", status=400)
+        return HttpResponse("Camera not connected", status=400)
 
     rtsp_url = f"rtsp://{cam['username']}:{cam['password']}@{cam['ip']}:554/stream1"
     cap = cv2.VideoCapture(rtsp_url)
 
     def generate():
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        try:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-            frame = cv2.resize(frame, (640, 360))
-            frame, person_count = detect_person(frame)
+                # OPTIONAL: resize biar ringan
+                frame = cv2.resize(frame, (640, 360))
 
-            cv2.putText(
-                frame,
-                f"AI PERSON: {person_count}",
-                (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0, 255, 0),
-                3
-            )
+                # ===== PERSON DETECTION =====
+                frame, person_count = detect_person(frame)
 
-            _, jpeg = cv2.imencode(".jpg", frame)
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n"
-                + jpeg.tobytes()
-                + b"\r\n"
-            )
+                # STATUS TEXT
+                status_text = (
+                    f"PERSON DETECTED ({person_count})"
+                    if person_count > 0
+                    else "NO PERSON"
+                )
 
-        cap.release()
+                cv2.putText(
+                    frame,
+                    status_text,
+                    (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.0,
+                    (255, 255, 255),
+                    3
+                )
 
-    return StreamingHttpResponse(generate(), content_type="multipart/x-mixed-replace; boundary=frame")
+                # ENCODE JPEG
+                _, jpeg = cv2.imencode(".jpg", frame)
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n"
+                    + jpeg.tobytes()
+                    + b"\r\n"
+                )
+        finally:
+            cap.release()
 
+    return StreamingHttpResponse(
+        generate(),
+        content_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 # Tambahan untuk stream2 jika ini dihapus
 
 def video_stream2(request):
-    cam = request.session.get(SESSION_CAM2)
+    cam = request.session.get("camera")
     if not cam:
-        return HttpResponse("Camera RAW not connected", status=400)
+        return HttpResponse("Camera not connected", status=400)
 
     rtsp_url = f"rtsp://{cam['username2']}:{cam['password2']}@{cam['ip2']}:554/stream2"
     cap = cv2.VideoCapture(rtsp_url)
 
-    def generate():
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            frame = cv2.resize(frame, (640, 360))
-
-            _, jpeg = cv2.imencode(".jpg", frame)
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n"
-                + jpeg.tobytes()
-                + b"\r\n"
-            )
-
-        cap.release()
-
-    return StreamingHttpResponse(generate(), content_type="multipart/x-mixed-replace; boundary=frame")
-
+    return StreamingHttpResponse(
+        content_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 def camera_screenshot(request):
     # 1. Validation

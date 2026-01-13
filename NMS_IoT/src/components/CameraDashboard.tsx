@@ -7,8 +7,14 @@ const CameraDashboard: React.FC = () => {
   const [ip, setIp] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [ip2, setIp2] = useState("");
+  const [username2, setUsername2] = useState("");
+  const [password2, setPassword2] = useState("");
   const [status, setStatus] = useState("");
-  const [connected, setConnected] = useState(false);
+  const [connected1, setConnected1] = useState(false);
+  const [connected2, setConnected2] = useState(false);
+  const videoRef1 = useRef<HTMLDivElement>(null);
+  const videoRef2 = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
   const [lastLabel, setLastLabel] = useState<string | null>(null);
@@ -28,7 +34,22 @@ const CameraDashboard: React.FC = () => {
     setStatus(data.message);
 
     if (res.ok) {
-      setConnected(true);
+      setConnected1(true);
+    }
+  };
+  const connectCamera2 = async () => {
+    const res = await fetch("http://localhost:8000/api/camera/connect2/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ ip2, username2, password2 }),
+    });
+
+    const data = await res.json();
+    setStatus(data.message);
+
+    if (res.ok) {
+      setConnected2(true);
     }
   };
   
@@ -41,8 +62,16 @@ const CameraDashboard: React.FC = () => {
     }
   };
 
-  const sendPTZ = (direction: string) => {
+  const sendPTZ1 = (direction: string) => {
     fetch("http://localhost:8000/api/ptz/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ direction }),
+    });
+  };
+  const sendPTZ2 = (direction: string) => {
+    fetch("http://localhost:8000/api/ptz2/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -95,9 +124,9 @@ const CameraDashboard: React.FC = () => {
           </div>
 
           <div className="camera-right">
-            {connected ? (
+            {connected1 ? (
               /* 4. Bungkus IMG dengan DIV yang memiliki Ref */
-              <div className="video-wrapper" ref={videoRef} style={{ position: 'relative' }}>
+              <div className="video-wrapper" ref={videoRef1} style={{ position: 'relative' }}>
                 <img
                   src="http://localhost:8000/api/stream/"
                   className="camera-stream"
@@ -117,10 +146,10 @@ const CameraDashboard: React.FC = () => {
             )}
 
             <div className="ptz-controls">
-              <button onClick={() => sendPTZ("up")}>⬆</button>
-              <button onClick={() => sendPTZ("left")}>⬅</button>
-              <button onClick={() => sendPTZ("right")}>➡</button>
-              <button onClick={() => sendPTZ("down")}>⬇</button>
+              <button onClick={() => sendPTZ1("up")}>⬆</button>
+              <button onClick={() => sendPTZ1("left")}>⬅</button>
+              <button onClick={() => sendPTZ1("right")}>➡</button>
+              <button onClick={() => sendPTZ1("down")}>⬇</button>
               <button className="btn capture" onClick={takeScreenshot}>Capture</button>
               <button className="btn view" disabled={!lastCapture} onClick={() => setShowModal(true)}>
                 Lihat Capture
@@ -154,17 +183,17 @@ const CameraDashboard: React.FC = () => {
         <div className="camera-layout">
           <div className="camera-left">
             <h3>Camera Connection</h3>
-            <input placeholder="IP Camera" value={ip} onChange={(e) => setIp(e.target.value)} />
-            <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <button className="btn connect" onClick={connectCamera}>Connect</button>
+            <input placeholder="IP Camera" value={ip2} onChange={(e) => setIp2(e.target.value)} />
+            <input placeholder="Username" value={username2} onChange={(e) => setUsername2(e.target.value)} />
+            <input type="password" placeholder="Password" value={password2} onChange={(e) => setPassword2(e.target.value)} />
+            <button className="btn connect" onClick={connectCamera2}>Connect</button>
             <p className="status">{status}</p>
           </div>
 
           <div className="camera-right">
-            {connected ? (
+            {connected2 ? (
               /* 4. Bungkus IMG dengan DIV yang memiliki Ref */
-              <div className="video-wrapper" ref={videoRef} style={{ position: 'relative' }}>
+              <div className="video-wrapper" ref={videoRef2} style={{ position: 'relative' }}>
                 <img
                   src="http://localhost:8000/api/stream2/"
                   className="camera-stream"
@@ -184,10 +213,10 @@ const CameraDashboard: React.FC = () => {
             )}
 
             <div className="ptz-controls">
-              <button onClick={() => sendPTZ("up")}>⬆</button>
-              <button onClick={() => sendPTZ("left")}>⬅</button>
-              <button onClick={() => sendPTZ("right")}>➡</button>
-              <button onClick={() => sendPTZ("down")}>⬇</button>
+              <button onClick={() => sendPTZ2("up")}>⬆</button>
+              <button onClick={() => sendPTZ2("left")}>⬅</button>
+              <button onClick={() => sendPTZ2("right")}>➡</button>
+              <button onClick={() => sendPTZ2("down")}>⬇</button>
               <button className="btn capture" onClick={takeScreenshot}>Capture</button>
               <button className="btn view" disabled={!lastCapture} onClick={() => setShowModal(true)}>
                 Lihat Capture
