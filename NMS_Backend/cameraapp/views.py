@@ -15,6 +15,7 @@ from rest_framework import status
 from .yolomodel import classify_from_endpoint
 from ultralytics import YOLO
 import numpy as np
+from .camera_logic import CAMERA_STATES, TapoEventListener
 import traceback
 import requests
 
@@ -93,17 +94,46 @@ def connect_camera(request):
 @csrf_exempt
 def connect_camera2(request):
     data = json.loads(request.body)
-
-    rtsp_url = f"rtsp://{data['username2']}:{data['password2']}@{data['ip2']}:554/stream2"
+    
+    # ... Logika validasi koneksi RTSP kamu yang lama ...
+    rtsp_url = f"rtsp://{data['username2']}:{data['password2']}@{data['ip2']}:554/stream1"
     cap = cv2.VideoCapture(rtsp_url)
-
     if not cap.isOpened():
         return JsonResponse({"message": "Failed to connect"}, status=400)
-
     cap.release()
 
     request.session[SESSION_CAM2] = data
-    return JsonResponse({"message": "Camera RAW connected"})
+    
+    # --- TAMBAHAN BARU: Mulai Listener Thread ---
+    # Kita gunakan SESSION_CAM1 sebagai key unik
+    listener = TapoEventListener(
+        ip2=data['ip2'], 
+        user2=data['username2'], 
+        password2=data['password2'],
+        session_key=SESSION_CAM2
+    )
+    listener.start()
+    # ---------------------------------------------
+
+    return JsonResponse({"message": "Camera AI connected & Listening for Events"})
+
+# Endpoint baru untuk React mengecek notifikasi
+@api_view(['GET'])
+def check_notifications(request):
+    # Cek apakah ada notifikasi untuk SESSION_CAM1
+    state = CAMERA_STATES.get(SESSION_CAM2)
+    
+    if state:
+        # Kita kirim notif jika event terjadi kurang dari 5 detik lalu
+        if time.time() - state['timestamp'] < 5:
+            return Response({
+                "has_alert": True,
+                "message": state['message'],
+                "is_recording": state.get('is_recording', False)
+            })
+            
+    return Response({"has_alert": False})
+
 def detect_person(frame, conf=0.3):
     results = model(frame, conf=conf, verbose=False)[0]
 

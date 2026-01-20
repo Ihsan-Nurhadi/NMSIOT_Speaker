@@ -11,6 +11,7 @@ urlpatterns = [
     path('camera/connect2/', views.connect_camera2, name='connect_camera2'),    
     path("stream/", views.video_stream),
     path("stream2/", views.video_stream2), # Tambahan untuk stream2 jika dihapus
+    path("notifications/", views.check_notifications, name="check_notifications"),
     path("camera/screenshot/", views.camera_screenshot, name="camera_screenshot"),
     path("classify/", classify_site),
 ]

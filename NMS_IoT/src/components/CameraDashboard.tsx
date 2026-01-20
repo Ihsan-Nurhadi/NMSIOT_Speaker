@@ -1,7 +1,8 @@
-import React, { useState, useRef } from "react"; // 1. Tambahkan useRef di sini
+import React, { useState, useRef, useEffect } from "react"; // 1. Tambahkan useRef di sini
 import "./CameraDashboard.css";
-import { FaCameraRetro, FaExpand } from "react-icons/fa"; // Tambahkan icon expand jika perlu
+import { FaCameraRetro, FaExpand, FaBell } from "react-icons/fa"; // Tambahkan icon expand jika perlu
 import Card from "./Card";
+
 
 const CameraDashboard: React.FC = () => {
   const [ip, setIp] = useState("");
@@ -18,6 +19,9 @@ const CameraDashboard: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [lastCapture, setLastCapture] = useState<string | null>(null);
   const [lastLabel, setLastLabel] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
 
   // 2. Buat Ref untuk menargetkan kontainer video
   const videoRef = useRef<HTMLDivElement>(null);
@@ -78,7 +82,13 @@ const CameraDashboard: React.FC = () => {
       body: JSON.stringify({ direction }),
     });
   };
-
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    // Hilangkan otomatis setelah 5 detik
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
   const takeScreenshot = async () => {
     setStatus("Processing classification...");
     const res = await fetch("http://localhost:8000/api/camera/screenshot/", {
@@ -100,9 +110,41 @@ const CameraDashboard: React.FC = () => {
       setStatus("Failed to capture image");
     }
   };
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
 
+    if (connected1) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch("http://localhost:8000/api/notifications/");
+          const data = await res.json();
+
+          if (data.has_alert) {
+             // Mencegah toast spam (opsional: logika timestamp di frontend)
+             toast.warning(data.message); 
+          }
+          
+          if (data.is_recording) {
+              setIsRecording(true);
+          } else {
+              setIsRecording(false);
+          }
+
+        } catch (error) {
+          console.error("Error polling notification:", error);
+        }
+      }, 2000); // Cek setiap 2 detik
+    }
+    return () => clearInterval(interval);
+  }, [connected1]);
   return (
     <Card className="camera-dashboard">
+    {toastMessage && (
+        <div className="custom-toast">
+          <FaBell /> {/* Icon Lonceng */}
+          <span>{toastMessage}</span>
+        </div>
+      )}
       <section className="camera1">
         <div className="card-header">
           <div className="icon-container audio" id="camera-icon">
@@ -207,6 +249,13 @@ const CameraDashboard: React.FC = () => {
                 >
                   <FaExpand />
                 </button>
+                {/* Overlay Recording Indicator */}
+                {isRecording && (
+                  <div className="recording-indicator">
+                    <div className="rec-dot"></div>
+                    REC 10s
+                  </div>
+                )}
               </div>
             ) : (
               <div className="camera-placeholder">Kamera belum terhubung</div>
